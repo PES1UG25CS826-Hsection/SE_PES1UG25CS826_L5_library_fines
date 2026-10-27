@@ -12,6 +12,7 @@ ALLOWED_OPS = {
     ast.Mult: operator.mul,
 }
 
+
 def add_book_loan(student_id, book_id, dates=None):
     """Record that a student borrowed a book."""
     if not student_id:
@@ -24,7 +25,11 @@ def add_book_loan(student_id, book_id, dates=None):
         dates = []
     dates.append(str(datetime.now()))
     loans[student_id] = loans.get(student_id, []) + [book_id]
-    print(f"{student_id} borrowed {book_id} (loan dates on record: {len(dates)})")
+    print(
+        f"{student_id} borrowed {book_id} "
+        f"(loan dates on record: {len(dates)})"
+    )
+
 
 def return_book(student_id, book_id):
     """Remove a book from a student's loans."""
@@ -35,9 +40,11 @@ def return_book(student_id, book_id):
     except (KeyError, ValueError):
         print(f"No record of {student_id} holding {book_id}")
 
+
 def calculate_fine(days_overdue):
     """Return the fine for the days overdue (never negative)."""
     return max(days_overdue, 0) * FINE_PER_DAY
+
 
 def renew_book(student_id, book_id, extra_days):
     """Renew a borrowed book. Renewals do not change the fine rate."""
@@ -48,6 +55,7 @@ def renew_book(student_id, book_id, extra_days):
         print(f"Cannot renew: {student_id} does not hold {book_id}")
         return
     print(f"Renewed {book_id} for {student_id} by {extra_days} days")
+
 
 def load_records(file="loans.json"):
     """Load loan records from a JSON file into memory."""
@@ -60,10 +68,12 @@ def load_records(file="loans.json"):
     loans.clear()
     loans.update(data)
 
+
 def save_records(file="loans.json"):
     """Save the current loan records to a JSON file."""
     with open(file, "w", encoding="utf-8") as handle:
         json.dump(loans, handle)
+
 
 def _eval_node(node, days):
     """Evaluate a parsed fine rule using only safe operations."""
@@ -77,15 +87,18 @@ def _eval_node(node, days):
         return ALLOWED_OPS[type(node.op)](left, right)
     raise ValueError("Unsupported fine rule")
 
+
 def fine_from_rule(rule, days):
     """Compute a fine from a rule such as 'days * 2 + 10'."""
     return _eval_node(ast.parse(rule, mode="eval").body, days)
+
 
 def print_report():
     """Print every student and the books they have borrowed."""
     print("Loan Report")
     for student, books in loans.items():
         print(student, "->", books)
+
 
 def main():
     """Run a demo of the loan system."""
@@ -106,6 +119,7 @@ def main():
     save_records()
     load_records()
     print_report()
+
 
 if __name__ == "__main__":
     main()
