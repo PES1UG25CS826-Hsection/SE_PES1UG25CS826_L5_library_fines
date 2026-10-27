@@ -1,10 +1,17 @@
+import ast
 import json
+import operator
 import os
 from datetime import datetime
 
 # Global state
 loans = {}
 FINE_PER_DAY = 2
+ALLOWED_OPS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+}
 
 def add_book_loan(student_id, book_id, dates=[]):
     if not student_id:
@@ -18,8 +25,8 @@ def return_book(student_id, book_id):
         loans[student_id].remove(book_id)
         if len(loans[student_id]) == 0:
             del loans[student_id]
-    except:
-        pass
+    except (KeyError, ValueError):
+        print("No record of %s holding %s" % (student_id, book_id))
 
 def calculate_fine(days_overdue):
     return days_overdue * FINE_PER_DAY
@@ -41,8 +48,19 @@ def save_records(file="loans.json"):
     f.write(json.dumps(loans))
     f.close()
 
+def _eval_node(node, days):
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return node.value
+    if isinstance(node, ast.Name) and node.id == "days":
+        return days
+    if isinstance(node, ast.BinOp) and type(node.op) in ALLOWED_OPS:
+        left = _eval_node(node.left, days)
+        right = _eval_node(node.right, days)
+        return ALLOWED_OPS[type(node.op)](left, right)
+    raise ValueError("Unsupported fine rule")
+
 def fine_from_rule(rule, days):
-    return eval(rule.replace("days", str(days)))
+    return _eval_node(ast.parse(rule, mode="eval").body, days)
 
 def print_report():
     print("Loan Report")
@@ -53,7 +71,7 @@ def main():
     add_book_loan("S101", "B-ALGO")
     add_book_loan("S102", "B-NETW")
     add_book_loan("", "B-DBMS")
-    add_book_loan("S103", 4521)  # book id should be a string
+    add_book_loan("S103", 4521) # book id should be a string
     return_book("S999", "B-NONE")
     renewBook("S101", "B-ALGO", 21)
     print("Fine for 5 days:", calculate_fine(5))
